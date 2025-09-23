@@ -1,3 +1,13 @@
+# ==============================================================================
+# J.A.R.V.I.S. AI ASSISTANT - BACKEND SERVER
+# ==============================================================================
+# This file contains the complete backend logic for the AI assistant,
+# including API integrations with Google Gemini and ElevenLabs.
+# It is designed for robustness, clarity, and easy debugging on platforms like Render.
+# ==============================================================================
+
+# --- 1. IMPORT NECESSARY LIBRARIES ---
+# ------------------------------------------------------------------------------
 import os
 import requests
 import google.generativeai as genai
@@ -7,144 +17,181 @@ import time
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 
-# --- 1. बेसिक सेटअप और कॉन्फ़िगरेशन ---
+# --- 2. INITIAL SETUP AND CONFIGURATION ---
+# ------------------------------------------------------------------------------
 
-# लॉगिंग कॉन्फ़िगर करें ताकि Render पर डिबगिंग आसान हो
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging to provide detailed output in the Render server logs.
+# This helps in tracking the application's flow and diagnosing issues.
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - [J.A.R.V.I.S. Backend] - %(message)s'
+)
 
-# लोकल डेवलपमेंट के लिए .env फाइल से वेरिएबल्स लोड करें
+# Load environment variables from a .env file for local development.
+# On Render, these variables will be set in the environment settings.
 load_dotenv()
 
-# Flask ऐप को इनिशियलाइज़ करें
-# template_folder='.' का मतलब है कि index.html इसी फोल्डर में है
+# Initialize the Flask web application.
+# 'template_folder' is set to '.' to find 'index.html' in the root directory.
 app = Flask(__name__, template_folder='.')
+logging.info("Flask application initialized successfully.")
 
-# --- 2. API और मॉडल कॉन्फ़िगरेशन ---
 
-# API कीज़ को एनवायरनमेंट वेरिएबल्स से सुरक्षित रूप से लोड करें
+# --- 3. API KEYS AND SERVICE CONFIGURATION ---
+# ------------------------------------------------------------------------------
+
+# Securely load API keys from environment variables.
+# The application will fail to start if these keys are not found.
 try:
     GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
     ELEVENLABS_API_KEY = os.environ['ELEVENLABS_API_KEY']
-    logging.info("API keys loaded successfully.")
-except KeyError as e:
-    logging.error(f"FATAL ERROR: Environment variable not set: {e}")
-    raise RuntimeError(f"FATAL ERROR: Environment variable not set: {e}. Please set it in Render's environment variables.")
+    logging.info("All required API keys have been loaded successfully.")
+except KeyError as error:
+    missing_key = str(error)
+    logging.critical(f"FATAL ERROR: The environment variable {missing_key} is not set!")
+    raise RuntimeError(f"The application cannot start because the environment variable {missing_key} is missing. Please set it in Render's environment variables.")
 
-# API URLs और मॉडल IDs को एक जगह रखें
+# Centralized configuration for API endpoints and models.
 ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1"
 ELEVENLABS_MODEL_ID = "eleven_multilingual_v2"
 GEMINI_MODEL_ID = 'gemini-1.5-pro-latest'
 
-# Gemini AI मॉडल को कॉन्फ़िगर करें
+# Configure the Google Gemini client with the API key.
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(GEMINI_MODEL_ID)
-    logging.info(f"Gemini model '{GEMINI_MODEL_ID}' configured successfully.")
-except Exception as e:
-    logging.error(f"Failed to configure Gemini AI: {e}")
+    gemini_model = genai.GenerativeModel(GEMINI_MODEL_ID)
+    logging.info(f"Google Gemini model '{GEMINI_MODEL_ID}' has been configured and is ready.")
+except Exception as error:
+    logging.critical(f"CRITICAL: Failed to configure the Gemini AI model. Error: {error}")
     raise
 
-# --- 3. वॉयस लिस्ट के लिए सर्वर-साइड कैशिंग ---
+# --- 4. SERVER-SIDE CACHING FOR ELEVENLABS VOICES ---
+# ------------------------------------------------------------------------------
+# This caching mechanism stores the list of voices to avoid making redundant API calls,
+# which improves performance and reduces API usage.
 
-# आवाज़ों की लिस्ट को कैश करें ताकि बार-बार API कॉल न हो
-# यह परफॉरमेंस को बढ़ाता है और API का उपयोग बचाता है
 voices_cache = {
     "data": None,
-    "timestamp": 0
+    "last_fetched_timestamp": 0
 }
-VOICES_CACHE_DURATION_SECONDS = 3600  # 1 घंटा
+# Cache duration is set to 1 hour (3600 seconds).
+VOICES_CACHE_DURATION_SECONDS = 3600
 
-# --- 4. Flask रूट्स और API एंडपॉइंट्स ---
+# --- 5. FLASK WEB ROUTES AND API ENDPOINTS ---
+# ------------------------------------------------------------------------------
 
 @app.route('/')
-def index():
-    """मुख्य index.html पेज को सर्व करता है।"""
+def serve_main_page():
+    """
+    Serves the main user interface file (index.html).
+    """
+    logging.info("Request received for the main page. Serving index.html.")
     return render_template('index.html')
 
+
 @app.route('/api/voices', methods=['GET'])
-def get_voices():
-    """ElevenLabs से आवाज़ों की लिस्ट लाता है और उन्हें कैश करता है।"""
+def get_elevenlabs_voices():
+    """
+    Provides the list of available voices from ElevenLabs, using a cache to
+    optimize performance.
+    """
     current_time = time.time()
-    
-    # अगर कैश वैलिड है, तो कैश से डेटा भेजें
-    if voices_cache["data"] and (current_time - voices_cache["timestamp"] < VOICES_CACHE_DURATION_SECONDS):
-        logging.info("Serving voices from cache.")
+    is_cache_valid = (current_time - voices_cache["last_fetched_timestamp"]) < VOICES_CACHE_DURATION_SECONDS
+
+    if voices_cache["data"] and is_cache_valid:
+        logging.info("Serving voices list from the cache.")
         return jsonify(voices_cache["data"])
 
-    logging.info("Fetching fresh voices from ElevenLabs API.")
-    url = f"{ELEVENLABS_API_URL}/voices"
+    logging.info("Cache is invalid or empty. Fetching a fresh list of voices from ElevenLabs API.")
+    api_url = f"{ELEVENLABS_API_URL}/voices"
     headers = {"Accept": "application/json", "xi-api-key": ELEVENLABS_API_KEY}
     
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # HTTP एरर के लिए चेक करें
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()  # This will raise an error for bad responses (4xx or 5xx)
         
-        # कैश को अपडेट करें
         voices_data = response.json()
         voices_cache["data"] = voices_data
-        voices_cache["timestamp"] = current_time
+        voices_cache["last_fetched_timestamp"] = current_time
+        logging.info("Successfully fetched and cached a new list of voices.")
         
         return jsonify(voices_data)
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching voices from ElevenLabs: {e}")
-        return jsonify({"error": "Could not fetch voices from ElevenLabs API."}), 500
+    except requests.exceptions.RequestException as error:
+        logging.error(f"Failed to fetch voices from ElevenLabs API. Error: {error}")
+        return jsonify({"error": "Could not connect to the voice generation service."}), 500
+
 
 @app.route('/api/chat', methods=['POST'])
-def chat():
-    """यूज़र का मैसेज लेता है, Gemini से जवाब पाता है, और ElevenLabs से ऑडियो बनाता है।"""
+def handle_chat_request():
+    """
+    This is the core endpoint. It receives user input, gets a response from Gemini,
+    generates audio with ElevenLabs, and returns both to the frontend.
+    This function includes detailed error handling to diagnose API issues.
+    """
     try:
-        data = request.get_json()
-        user_message = data.get('message')
-        voice_id = data.get('voice_id')
+        # --- Get data from the frontend request ---
+        request_data = request.get_json()
+        user_message = request_data.get('message')
+        voice_id = request_data.get('voice_id')
 
         if not user_message or not voice_id:
-            logging.warning("Missing message or voice_id in chat request.")
-            return jsonify({"error": "Message and voice_id are required."}), 400
+            logging.warning("Chat request received with missing message or voice_id.")
+            return jsonify({"error": "Both a message and a voice_id are required."}), 400
 
-        logging.info(f"Processing chat request for voice_id: {voice_id}")
+        logging.info(f"Processing new chat request. Selected voice_id: {voice_id}")
 
-        # --- स्टेप A: Gemini से टेक्स्ट जवाब पाएँ ---
+        # --- STEP A: Get a text response from the Google Gemini API ---
         try:
-            gemini_response = model.generate_content(user_message)
+            logging.info("Sending user message to Gemini API...")
+            gemini_response = gemini_model.generate_content(user_message)
             ai_text_response = gemini_response.text
-        except Exception as e:
-            logging.error(f"Gemini API error: {e}")
-            return jsonify({"error": "Failed to get response from AI model."}), 500
+            logging.info("Successfully received response from Gemini API.")
+        except Exception as error:
+            # THIS IS THE MOST IMPORTANT PART FOR DEBUGGING
+            # It captures the exact error from Google and sends it to the frontend.
+            google_error_message = str(error)
+            logging.error(f"CRITICAL: An error occurred with the Gemini API. Full Error: {google_error_message}")
+            # Return the detailed error to the frontend so the user can see it.
+            return jsonify({"error": f"AI Model Error: {google_error_message}"}), 500
 
-        # --- स्टेप B: ElevenLabs से ऑडियो पाएँ ---
-        tts_url = f"{ELEVENLABS_API_URL}/text-to-speech/{voice_id}"
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY
-        }
-        tts_payload = {
-            "text": ai_text_response,
-            "model_id": ELEVENLABS_MODEL_ID,
-            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
-        }
-        
+        # --- STEP B: Generate audio from the text using ElevenLabs API ---
         try:
+            logging.info("Sending AI text response to ElevenLabs API for audio generation...")
+            tts_url = f"{ELEVENLABS_API_URL}/text-to-speech/{voice_id}"
+            headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": ELEVENLABS_API_KEY}
+            tts_payload = {
+                "text": ai_text_response,
+                "model_id": ELEVENLABS_MODEL_ID,
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+            }
+            
             audio_response = requests.post(tts_url, json=tts_payload, headers=headers)
             audio_response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            logging.error(f"ElevenLabs API error: {e}")
-            return jsonify({"error": "Failed to generate audio from text."}), 500
+            logging.info("Successfully received audio data from ElevenLabs API.")
+        except requests.exceptions.RequestException as error:
+            logging.error(f"An error occurred with the ElevenLabs API. Error: {error}")
+            return jsonify({"error": "Failed to generate audio from the text response."}), 500
 
-        # --- स्टेप C: ऑडियो को Base64 में एन्कोड करें और जवाब भेजें ---
+        # --- STEP C: Prepare and send the final response to the frontend ---
+        # Encode audio data in Base64 to safely send it within a JSON object.
         audio_base64 = base64.b64encode(audio_response.content).decode('utf-8')
 
-        logging.info("Successfully generated text and audio response.")
+        logging.info("Successfully processed the chat request. Sending text and audio back to the frontend.")
         return jsonify({
             "textResponse": ai_text_response,
             "audioBase64": audio_base64
         })
 
-    except Exception as e:
-        logging.error(f"An unexpected error occurred in /api/chat: {e}")
-        return jsonify({"error": "An unexpected server error occurred."}), 500
+    except Exception as error:
+        # A general catch-all for any other unexpected errors in this function.
+        logging.error(f"An unexpected error occurred in the chat handler. Error: {error}", exc_info=True)
+        return jsonify({"error": "An unexpected server error occurred. Please check the logs."}), 500
 
-# यह सुनिश्चित करता है कि ऐप लोकल डेवलपमेंट में चलाया जा सकता है।
-# Render gunicorn का उपयोग करके इसे चलाएगा।
+# ==============================================================================
+# This block is for local development only. When deployed on Render,
+# Gunicorn will be used to run the application, and this block will not be executed.
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    # Runs the Flask app on a local server for testing.
+    # host='0.0.0.0' makes it accessible on your local network.
+    app.run(host='0.0.0.0', port=8080, debug=True)
+# ==============================================================================
