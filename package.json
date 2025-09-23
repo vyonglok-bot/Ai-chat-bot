@@ -1,0 +1,16 @@
+{
+  "name": "python-wrapper-for-jarvis",
+  "version": "1.0.0",
+  "description": "A Node.js wrapper to run a Python Flask application on Render.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "pip install -r requirements.txt"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "http-proxy-middleware": "^3.0.0"
+  }
+}
