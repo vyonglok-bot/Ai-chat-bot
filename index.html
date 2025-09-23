@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>J.A.R.V.I.S. - AI Assistant</title>
     <style>
-        /* --- ग्लोबल स्टाइल्स और फॉन्ट्स --- */
+        /* --- पिछले सारे स्टाइल वही रहेंगे --- */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
-
         :root {
             --primary-glow: #00e5ff;
             --secondary-glow: #7a00ff;
@@ -18,227 +17,206 @@
             --user-message-bg: #2a314e;
             --border-color: rgba(0, 229, 255, 0.2);
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-glow) transparent;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--background-dark);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            background-image: radial-gradient(circle, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
-            background-size: 1.5rem 1.5rem;
-        }
-
-        /* --- मुख्य चैट कंटेनर --- */
-        .chat-container {
-            width: 100%;
-            height: 100%;
-            max-width: 800px;
-            max-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--surface-dark);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 25px rgba(0, 229, 255, 0.1), 0 0 50px rgba(122, 0, 255, 0.1);
-            border-radius: 15px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        /* --- हेडर --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: var(--primary-glow) transparent; }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--background-dark); color: var(--text-color); display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; background-image: radial-gradient(circle, rgba(0, 229, 255, 0.05) 1px, transparent 1px); background-size: 1.5rem 1.5rem; }
+        .chat-container { width: 100%; height: 100%; max-width: 800px; max-height: 100vh; display: flex; flex-direction: column; background-color: var(--surface-dark); border: 1px solid var(--border-color); box-shadow: 0 0 25px rgba(0, 229, 255, 0.1), 0 0 50px rgba(122, 0, 255, 0.1); border-radius: 15px; overflow: hidden; }
+        
+        /* --- नया: AI स्टेटस हेडर --- */
         .chat-header {
             padding: 1rem;
             background: linear-gradient(135deg, var(--bot-message-bg), var(--surface-dark));
             border-bottom: 1px solid var(--border-color);
             text-align: center;
-            position: relative;
-        }
-
-        .chat-header h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.5rem;
-            color: var(--primary-glow);
-            text-shadow: 0 0 10px var(--primary-glow);
-            letter-spacing: 2px;
-        }
-        
-        .voice-selector-container {
-            margin-top: 10px;
-        }
-
-        #voice-select {
-            background-color: var(--surface-dark);
-            color: var(--primary-glow);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 5px 10px;
-            font-family: 'Roboto', sans-serif;
-            cursor: pointer;
-        }
-
-        #voice-select:focus {
-            outline: none;
-            box-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        /* --- चैट विंडो --- */
-        .chat-window {
-            flex-grow: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
-        }
-
-        .message {
-            max-width: 80%;
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            line-height: 1.5;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .bot-message {
-            background-color: var(--bot-message-bg);
-            align-self: flex-start;
-            border-top-left-radius: 0;
-            border: 1px solid var(--border-color);
-        }
-
-        .user-message {
-            background-color: var(--user-message-bg);
-            align-self: flex-end;
-            border-top-right-radius: 0;
-        }
-
-        .typing-indicator {
-            align-self: flex-start;
-            font-style: italic;
-            opacity: 0.7;
-            display: none; /* शुरू में छिपा हुआ */
+            align-items: center;
+            gap: 10px;
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* नया: एनिमेटेड ऑर्ब */
+        #ai-orb {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, var(--primary-glow), transparent 60%);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
-        /* --- इनपुट एरिया --- */
-        .chat-input-area {
-            display: flex;
-            padding: 1rem;
-            border-top: 1px solid var(--border-color);
+        #ai-orb.listening {
+            animation: pulse 1.5s infinite;
         }
-
-        #chat-input {
-            flex-grow: 1;
-            background-color: var(--background-dark);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 0.75rem 1rem;
-            color: var(--text-color);
+        #ai-orb.thinking {
+            transform: scale(0.8);
+            animation: spin 2s linear infinite;
+        }
+        
+        #ai-status {
+            font-family: 'Orbitron', sans-serif;
             font-size: 1rem;
+            color: var(--text-color);
+            opacity: 0.8;
         }
 
-        #chat-input:focus {
-            outline: none;
-            box-shadow: 0 0 10px var(--primary-glow);
-        }
+        #voice-select { background-color: var(--surface-dark); color: var(--primary-glow); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-family: 'Roboto', sans-serif; cursor: pointer; }
 
-        #send-btn {
-            background-color: transparent;
-            border: none;
-            color: var(--primary-glow);
-            font-size: 1.5rem;
-            margin-left: 1rem;
-            cursor: pointer;
-            transition: transform 0.2s, text-shadow 0.2s;
-        }
+        .chat-window { flex-grow: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; }
+        .message { max-width: 80%; margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: 10px; line-height: 1.5; animation: fadeIn 0.5s ease; }
+        .bot-message { background-color: var(--bot-message-bg); align-self: flex-start; border-top-left-radius: 0; border: 1px solid var(--border-color); }
+        .user-message { background-color: var(--user-message-bg); align-self: flex-end; border-top-right-radius: 0; }
+        .typing-indicator { align-self: flex-start; font-style: italic; opacity: 0.7; display: none; }
+        
+        /* --- यह हिस्सा आपके कोड में शायद गायब था --- */
+        .chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); align-items: center; }
+        #chat-input { flex-grow: 1; background-color: var(--background-dark); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.75rem 1rem; color: var(--text-color); font-size: 1rem; }
+        #chat-input:focus { outline: none; box-shadow: 0 0 10px var(--primary-glow); }
+        .action-btn { background-color: transparent; border: none; color: var(--primary-glow); font-size: 1.5rem; margin-left: 0.75rem; cursor: pointer; transition: transform 0.2s, text-shadow 0.2s; padding: 5px;}
+        .action-btn:hover { transform: scale(1.2); text-shadow: 0 0 10px var(--primary-glow); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 15px var(--primary-glow); } 50% { transform: scale(1.1); box-shadow: 0 0 25px var(--primary-glow); } 100% { transform: scale(1); box-shadow: 0 0 15px var(--primary-glow); } }
+        @keyframes spin { from { transform: rotate(0deg) scale(0.8); } to { transform: rotate(360deg) scale(0.8); } }
 
-        #send-btn:hover {
-            transform: scale(1.2);
-            text-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        /* --- मोबाइल फ्रेंडली डिज़ाइन --- */
-        @media (max-width: 600px) {
-            body {
-                padding: 0;
-            }
-            .chat-container {
-                border-radius: 0;
-                height: 100vh;
-                border: none;
-            }
-            .chat-header h1 {
-                font-size: 1.2rem;
-            }
-            .chat-window {
-                padding: 1rem;
-            }
-            .message {
-                max-width: 90%;
-            }
-        }
+        @media (max-width: 600px) { body { padding: 0; } .chat-container { border-radius: 0; height: 100vh; border: none; } .chat-window { padding: 1rem; } .message { max-width: 90%; } }
     </style>
 </head>
 <body>
 
     <div class="chat-container">
         <header class="chat-header">
-            <h1>J.A.R.V.I.S.</h1>
-            <div class="voice-selector-container">
-                <select id="voice-select">
-                    <option value="">Loading Voices...</option>
-                </select>
-            </div>
+            <!-- नया J.A.R.V.I.S. स्टेटस डिस्प्ले -->
+            <div id="ai-orb"></div>
+            <div id="ai-status">J.A.R.V.I.S. is Ready</div>
+            <select id="voice-select">
+                <option value="">Loading Voices...</option>
+            </select>
         </header>
 
         <main class="chat-window" id="chat-window">
             <div class="message bot-message">
                 Hello! I am J.A.R.V.I.S. How can I assist you today?
             </div>
-            <div class="message bot-message typing-indicator" id="typing-indicator">
-                J.A.R.V.I.S. is typing...
-            </div>
         </main>
 
+        <!-- यह रहा आपका इनपुट एरिया जो अब दिखेगा -->
         <footer class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type your message here...">
-            <button id="send-btn" aria-label="Send Message">
-                <svg xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <input type="text" id="chat-input" placeholder="Type or click the mic to speak...">
+            <!-- बोलकर बात करने के लिए नया माइक बटन -->
+            <button id="mic-btn" class="action-btn" aria-label="Speak">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            <button id="send-btn" class="action-btn" aria-label="Send Message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
         </footer>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // DOM एलिमेंट्स को चुनें
             const chatWindow = document.getElementById('chat-window');
             const chatInput = document.getElementById('chat-input');
             const sendBtn = document.getElementById('send-btn');
             const voiceSelect = document.getElementById('voice-select');
-            const typingIndicator = document.getElementById('typing-indicator');
+            const micBtn = document.getElementById('mic-btn');
+            const aiOrb = document.getElementById('ai-orb');
+            const aiStatus = document.getElementById('ai-status');
 
+            // ब्राउज़र की स्पीच रिकग्निशन API को सेट करें
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.lang = 'en-US'; // आप इसे 'hi-IN' भी कर सकते हैं
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    updateAiState('listening', 'Listening...');
+                };
+
+                recognition.onresult = (event) => {
+                    const spokenText = event.results[0][0].transcript;
+                    chatInput.value = spokenText;
+                    handleSendMessage(); // सुनने के बाद सीधे मैसेज भेज दें
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error', event.error);
+                    updateAiState('ready', `Error: ${event.error}`);
+                };
+                
+                recognition.onend = () => {
+                   if (aiStatus.textContent === 'Listening...') {
+                        updateAiState('ready', 'J.A.R.V.I.S. is Ready');
+                   }
+                };
+
+            } else {
+                micBtn.style.display = 'none'; // अगर API सपोर्टेड नहीं है तो माइक बटन छिपा दें
+                console.warn("Speech Recognition API not supported in this browser.");
+            }
+
+            // AI की स्थिति (सुनना, सोचना, बोलना) को अपडेट करने के लिए फंक्शन
+            function updateAiState(state, text) {
+                aiStatus.textContent = text;
+                aiOrb.className = ''; // पहले की क्लास हटाएँ
+                aiOrb.classList.add(state);
+            }
+            
+            async function loadVoices() { /* ... यह फंक्शन वही रहेगा ... */ }
+            function displayMessage(message, sender) { /* ... यह फंक्शन वही रहेगा ... */ }
+            function playAudio(base64Audio) {
+                const audioSrc = `data:audio/mpeg;base64,${base64Audio}`;
+                const audio = new Audio(audioSrc);
+                updateAiState('speaking', 'Speaking...');
+                audio.play();
+                audio.onended = () => {
+                    updateAiState('ready', 'J.A.R.V.I.S. is Ready');
+                };
+            }
+
+            async function handleSendMessage() {
+                const userInput = chatInput.value.trim();
+                if (!userInput) return;
+
+                const selectedVoiceId = voiceSelect.value;
+                if (!selectedVoiceId) { alert('Please select a voice first.'); return; }
+
+                displayMessage(userInput, 'user');
+                chatInput.value = '';
+                updateAiState('thinking', 'Thinking...');
+
+                try {
+                    const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userInput, voice_id: selectedVoiceId }), });
+                    if (!response.ok) { const errData = await response.json(); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+                    
+                    const data = await response.json();
+                    displayMessage(data.textResponse, 'bot');
+                    if (data.audioBase64) { playAudio(data.audioBase64); } else { updateAiState('ready', 'J.A.R.V.I.S. is Ready'); }
+
+                } catch (error) {
+                    console.error('Error communicating with AI:', error);
+                    displayMessage(`Sorry, an error occurred: ${error.message}`, 'bot');
+                    updateAiState('ready', 'Error occurred');
+                }
+            }
+
+            sendBtn.addEventListener('click', handleSendMessage);
+            chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+            
+            if (recognition) {
+                micBtn.addEventListener('click', () => {
+                    recognition.start();
+                });
+            }
+
+            // ज़रूरी फंक्शन्स को फिर से कॉपी-पेस्ट कर रहा हूँ ताकि कुछ छूट न जाए
             async function loadVoices() {
                 try {
                     const response = await fetch('/api/voices');
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
-                    
                     voiceSelect.innerHTML = '<option value="">Select a Voice</option>';
                     data.voices.forEach(voice => {
                         const option = document.createElement('option');
@@ -251,78 +229,16 @@
                     voiceSelect.innerHTML = '<option value="">Error loading voices</option>';
                 }
             }
-            
             function displayMessage(message, sender) {
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message', `${sender}-message`);
                 messageDiv.textContent = message;
-                chatWindow.insertBefore(messageDiv, typingIndicator);
+                chatWindow.appendChild(messageDiv);
                 chatWindow.scrollTop = chatWindow.scrollHeight;
             }
-
-            // --- अपडेटेड फंक्शन: Base64 ऑडियो को प्ले करने के लिए ---
-            function playAudio(base64Audio) {
-                const audioSrc = `data:audio/mpeg;base64,${base64Audio}`;
-                const audio = new Audio(audioSrc);
-                audio.play();
-            }
-
-            // --- अपडेटेड फंक्शन: बैकएंड से JSON में टेक्स्ट और ऑडियो पाने के लिए ---
-            async function handleSendMessage() {
-                const userInput = chatInput.value.trim();
-                if (!userInput) return;
-
-                const selectedVoiceId = voiceSelect.value;
-                if (!selectedVoiceId) {
-                    alert('Please select a voice first.');
-                    return;
-                }
-
-                displayMessage(userInput, 'user');
-                chatInput.value = '';
-                typingIndicator.style.display = 'block';
-
-                try {
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            message: userInput,
-                            voice_id: selectedVoiceId
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        throw new Error(errData.error || `HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-
-                    displayMessage(data.textResponse, 'bot');
-                    if (data.audioBase64) {
-                        playAudio(data.audioBase64);
-                    }
-
-                } catch (error) {
-                    console.error('Error communicating with AI:', error);
-                    displayMessage(`Sorry, I encountered an error: ${error.message}`, 'bot');
-                } finally {
-                    typingIndicator.style.display = 'none';
-                }
-            }
-
-            sendBtn.addEventListener('click', handleSendMessage);
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleSendMessage();
-                }
-            });
 
             loadVoices();
         });
     </script>
 </body>
-</html>
+</html> 
