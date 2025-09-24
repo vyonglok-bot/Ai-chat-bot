@@ -1,244 +1,385 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="en" style="scroll-behavior: smooth;">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <title>vyngylok</title>
+    <!-- Essential for Mobile Responsiveness -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. - AI Assistant</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "cyonered": "#FF3B3B",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                        "heading": "#0F172A",
+                        "body-text": "#475569",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
     <style>
-        /* --- पिछले सारे स्टाइल वही रहेंगे --- */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
-        :root {
-            --primary-glow: #00e5ff;
-            --secondary-glow: #7a00ff;
-            --background-dark: #070912;
-            --surface-dark: #101422;
-            --text-color: #e0e0e0;
-            --bot-message-bg: #1a2036;
-            --user-message-bg: #2a314e;
-            --border-color: rgba(0, 229, 255, 0.2);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: var(--primary-glow) transparent; }
-        body { font-family: 'Roboto', sans-serif; background-color: var(--background-dark); color: var(--text-color); display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; background-image: radial-gradient(circle, rgba(0, 229, 255, 0.05) 1px, transparent 1px); background-size: 1.5rem 1.5rem; }
-        .chat-container { width: 100%; height: 100%; max-width: 800px; max-height: 100vh; display: flex; flex-direction: column; background-color: var(--surface-dark); border: 1px solid var(--border-color); box-shadow: 0 0 25px rgba(0, 229, 255, 0.1), 0 0 50px rgba(122, 0, 255, 0.1); border-radius: 15px; overflow: hidden; }
-        
-        /* --- नया: AI स्टेटस हेडर --- */
-        .chat-header {
-            padding: 1rem;
-            background: linear-gradient(135deg, var(--bot-message-bg), var(--surface-dark));
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* नया: एनिमेटेड ऑर्ब */
-        #ai-orb {
-            width: 50px;
-            height: 50px;
-            background: radial-gradient(circle, var(--primary-glow), transparent 60%);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.5);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        #ai-orb.listening {
-            animation: pulse 1.5s infinite;
-        }
-        #ai-orb.thinking {
-            transform: scale(0.8);
-            animation: spin 2s linear infinite;
-        }
-        
-        #ai-status {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1rem;
-            color: var(--text-color);
-            opacity: 0.8;
-        }
-
-        #voice-select { background-color: var(--surface-dark); color: var(--primary-glow); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-family: 'Roboto', sans-serif; cursor: pointer; }
-
-        .chat-window { flex-grow: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; }
-        .message { max-width: 80%; margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: 10px; line-height: 1.5; animation: fadeIn 0.5s ease; }
-        .bot-message { background-color: var(--bot-message-bg); align-self: flex-start; border-top-left-radius: 0; border: 1px solid var(--border-color); }
-        .user-message { background-color: var(--user-message-bg); align-self: flex-end; border-top-right-radius: 0; }
-        .typing-indicator { align-self: flex-start; font-style: italic; opacity: 0.7; display: none; }
-        
-        /* --- यह हिस्सा आपके कोड में शायद गायब था --- */
-        .chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); align-items: center; }
-        #chat-input { flex-grow: 1; background-color: var(--background-dark); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.75rem 1rem; color: var(--text-color); font-size: 1rem; }
-        #chat-input:focus { outline: none; box-shadow: 0 0 10px var(--primary-glow); }
-        .action-btn { background-color: transparent; border: none; color: var(--primary-glow); font-size: 1.5rem; margin-left: 0.75rem; cursor: pointer; transition: transform 0.2s, text-shadow 0.2s; padding: 5px;}
-        .action-btn:hover { transform: scale(1.2); text-shadow: 0 0 10px var(--primary-glow); }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 15px var(--primary-glow); } 50% { transform: scale(1.1); box-shadow: 0 0 25px var(--primary-glow); } 100% { transform: scale(1); box-shadow: 0 0 15px var(--primary-glow); } }
-        @keyframes spin { from { transform: rotate(0deg) scale(0.8); } to { transform: rotate(360deg) scale(0.8); } }
-
-        @media (max-width: 600px) { body { padding: 0; } .chat-container { border-radius: 0; height: 100vh; border: none; } .chat-window { padding: 1rem; } .message { max-width: 90%; } }
+        body { min-height: max(884px, 100dvh); }
+        #news-page-container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; }
+        #news-page-container .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
+        #news-page-container .header h1 { color: #2c2c2c; margin: 0; font-weight: 700; }
+        #news-page-container .subscribe-btn { background-color: #F44336; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 14px 0 rgba(244, 67, 54, 0.39); }
+        #news-page-container .subscribe-btn:hover { background-color: #d32f2f; transform: translateY(-2px); box-shadow: 0 6px 20px 0 rgba(244, 67, 54, 0.45); }
+        #news-page-container .category-container { overflow-x: auto; white-space: nowrap; padding: 15px 10px; background-color: #ffffff; -ms-overflow-style: none; scrollbar-width: none; border-bottom: 1px solid #e0e0e0;}
+        #news-page-container .category-container::-webkit-scrollbar { display: none; }
+        #news-page-container .category-item { display: inline-block; padding: 8px 18px; margin: 0 5px; background-color: #e0e0e0; color: #333; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; }
+        #news-page-container .category-item:hover { transform: translateY(-2px); background-color: #dcdcdc; }
+        #news-page-container .category-item.active { background-color: #FF3B3B; color: white; box-shadow: 0 4px 14px 0 rgba(255, 59, 59, 0.39); transform: translateY(-2px); }
+        #news-page-container .latest-articles-ticker { background-color: #333; color: white; padding: 10px; overflow: hidden; position: relative; height: 40px; font-size: 14px; }
+        #news-page-container .latest-articles-ticker .article-item { position: absolute; width: 100%; text-align: center; opacity: 0; transition: opacity 0.5s ease-in-out; top: 50%; transform: translateY(-50%); }
+        #news-page-container .latest-articles-ticker .article-item.active { opacity: 1; }
+        #news-page-container .main-content { padding: 20px; }
+        #news-page-container .main-article-card { background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; }
+        #news-page-container .image-container-16-9 { position: relative; width: 100%; padding-top: 56.25%; }
+        #news-page-container .image-container-16-9 img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #news-page-container .article-topic { background-color: #FF3B3B; color: white; padding: 5px 15px; display: inline-block; margin: 15px; border-radius: 5px; font-size: 14px; font-weight: bold; }
+        #news-page-container .article-box { padding: 0 15px 15px 15px; }
+        #news-page-container .article-box h2 { margin-top: 0; font-size: 22px; }
+        #news-page-container .article-box p { font-size: 16px; line-height: 1.6; }
+        #news-page-container .older-articles-section { padding: 0 20px 20px 20px; }
+        #news-page-container .older-articles-section h3 { border-bottom: 3px solid #FF3B3B; padding-bottom: 10px; margin-bottom: 20px; }
+        #news-page-container .old-article-strip { display: flex; align-items: center; background-color: #ffffff; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); padding: 10px; transition: all 0.3s ease-in-out; cursor: pointer; }
+        #news-page-container .old-article-strip:hover { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); transform: translateY(-3px) scale(1.01); }
+        #news-page-container .old-article-image { width: 100px; height: 65px; flex-shrink: 0; border-radius: 5px; object-fit: cover; }
+        #news-page-container .old-article-topic { padding: 0 15px; font-size: 16px; font-weight: bold; flex-grow: 1; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px; position: relative; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.3s ease; }
+        .close-btn:hover { color: #333; }
+        .modal-content h2 { margin-bottom: 20px; }
+        .modal-content form { display: flex; flex-direction: column; gap: 15px; }
+        .modal-content input, .modal-content textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; transition: box-shadow 0.3s ease; }
+        .modal-content input:focus, .modal-content textarea:focus { box-shadow: 0 0 0 2px rgba(255, 59, 59, 0.5); outline: none; border-color: #FF3B3B;}
+        .modal-content button { padding: 12px; border: none; border-radius: 5px; background-color: #FF3B3B; color: white; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
+        .modal-content button:hover { background-color: #E03030; box-shadow: 0 4px 10px rgba(255, 59, 59, 0.4); transform: translateY(-2px); }
+        .policy-content { padding: 10px; }
     </style>
 </head>
-<body>
 
-    <div class="chat-container">
-        <header class="chat-header">
-            <!-- नया J.A.R.V.I.S. स्टेटस डिस्प्ले -->
-            <div id="ai-orb"></div>
-            <div id="ai-status">J.A.R.V.I.S. is Ready</div>
-            <select id="voice-select">
-                <option value="">Loading Voices...</option>
-            </select>
+<body class="bg-background-light font-display text-body-text">
+
+<!-- Landing Page Content -->
+<div id="landing-page">
+    <div class="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md">
+        <header class="flex items-center justify-between p-4 border-b border-slate-200 shadow-md">
+            <h2 class="text-2xl font-black text-cyonered">vyngylok</h2>
+            <a href="#subscribe-section" class="px-5 py-2 font-bold text-white bg-cyonered rounded-lg shadow-lg hover:opacity-90 transition-transform transform hover:scale-105 hover:-translate-y-0.5 text-sm">Subscribe</a>
         </header>
-
-        <main class="chat-window" id="chat-window">
-            <div class="message bot-message">
-                Hello! I am J.A.R.V.I.S. How can I assist you today?
-            </div>
-        </main>
-
-        <!-- यह रहा आपका इनपुट एरिया जो अब दिखेगा -->
-        <footer class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type or click the mic to speak...">
-            <!-- बोलकर बात करने के लिए नया माइक बटन -->
-            <button id="mic-btn" class="action-btn" aria-label="Speak">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-            </button>
-            <button id="send-btn" class="action-btn" aria-label="Send Message">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-        </footer>
+        <nav class="flex justify-around border-b border-slate-200">
+            <a class="py-3 px-2 text-center text-sm font-bold border-b-2 border-cyonered text-heading" href="#">Home</a>
+            <a class="py-3 px-2 text-center text-sm font-medium text-slate-600 hover:text-cyonered transition-colors duration-300" href="#featured-stories">Featured</a>
+            <a class="py-3 px-2 text-center text-sm font-medium text-slate-600 hover:text-cyonered transition-colors duration-300" href="#subscribe-section">Subscribe</a>
+            <a class="py-3 px-2 text-center text-sm font-medium text-slate-600 hover:text-cyonered transition-colors duration-300" href="#about-section">About</a>
+        </nav>
     </div>
+    <main>
+        <section class="relative min-h-[60vh] flex items-end p-6 bg-cover bg-center" style='background-image: linear-gradient(rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuDfUx9TgGOkBGmAWbN5bKq14ey6_vzrwrBLx3K5ZoFUmUM4Uiyl2P49Jepxu9mixJiAaxpCXcAIjyzL30_ZoLGLQqGpZkflgxAOzvYY00mrOa95ppH_JXmsntgjYtrcGc-qTqvLCY3UIdGiUT6G0ik_h2088e1lNBD6UibC5pjktHJWIhsodDwMBUNrytvNo1SUDM5n-LEIcdivFdFQRAA3Bfa-t6XGae0dB8rr8FKqDZrMPg5wqO0WL_9qKQuWzhUfrUCVKpky9qE");'>
+            <div class="text-white max-w-xl space-y-4">
+                <h1 class="text-4xl font-black tracking-tight md:text-5xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Discover the world through stories</h1>
+                <p class="text-base font-light text-slate-200" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">Explore diverse perspectives and insightful narratives on vyngylok.</p>
+                <div class="flex flex-wrap gap-4 pt-4">
+                    <button id="explore-btn" class="px-6 py-3 font-bold text-white bg-cyonered rounded-lg shadow-xl hover:opacity-90 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1">Explore</button>
+                    <a href="#subscribe-section" class="px-6 py-3 font-bold text-heading bg-white/90 rounded-lg shadow-xl hover:bg-white transition-all duration-300 transform hover:scale-105 hover:-translate-y-1">Subscribe</a>
+                </div>
+            </div>
+        </section>
+        
+        <section id="featured-stories" class="p-6">
+            <div class="flex items-center mb-4"><h2 class="text-2xl font-bold text-heading">Featured Stories</h2><div class="h-0.5 flex-grow ml-4 bg-cyonered"></div></div>
+            <div id="featured-stories-container" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Featured stories will be loaded here -->
+                <p>Loading...</p>
+            </div>
+        </section>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // DOM एलिमेंट्स को चुनें
-            const chatWindow = document.getElementById('chat-window');
-            const chatInput = document.getElementById('chat-input');
-            const sendBtn = document.getElementById('send-btn');
-            const voiceSelect = document.getElementById('voice-select');
-            const micBtn = document.getElementById('mic-btn');
-            const aiOrb = document.getElementById('ai-orb');
-            const aiStatus = document.getElementById('ai-status');
+        <section id="latest-articles" class="p-6">
+            <div class="flex items-center mb-4"><h2 class="text-2xl font-bold text-heading">Latest Articles</h2><div class="h-0.5 flex-grow ml-4 bg-cyonered"></div></div>
+            <div id="latest-articles-container" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                 <!-- Latest articles will be loaded here -->
+                 <p>Loading...</p>
+            </div>
+        </section>
 
-            // ब्राउज़र की स्पीच रिकग्निशन API को सेट करें
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let recognition;
+        <section id="editors-picks" class="p-6">
+            <div class="flex items-center mb-4"><h2 class="text-2xl font-bold text-heading">Editors' Picks</h2><div class="h-0.5 flex-grow ml-4 bg-cyonered"></div></div>
+            <div id="editors-picks-container" class="flex overflow-x-auto gap-6 pb-4 -mx-6 px-6">
+                <!-- Editors' picks will be loaded here -->
+                <p>Loading...</p>
+            </div>
+        </section>
 
-            if (SpeechRecognition) {
-                recognition = new SpeechRecognition();
-                recognition.continuous = false;
-                recognition.lang = 'en-US'; // आप इसे 'hi-IN' भी कर सकते हैं
-                recognition.interimResults = false;
+        <section id="subscribe-section" class="py-16 px-6 text-center bg-slate-100">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold mb-2 text-heading">Stay updated with our newsletter</h2>
+                <p class="text-body-text mb-6">Get the latest stories delivered to your inbox.</p>
+                <form class="flex max-w-md mx-auto shadow-lg rounded-lg">
+                    <input class="form-input flex-grow w-full rounded-l-lg border-slate-300 focus:border-cyonered focus:ring focus:ring-cyonered focus:ring-opacity-50" placeholder="Your email" type="email" />
+                    <button class="px-6 py-3 font-bold text-white bg-cyonered rounded-r-lg hover:bg-red-700 transition-all duration-300 transform hover:scale-105" type="submit">Subscribe</button>
+                </form>
+            </div>
+        </section>
 
-                recognition.onstart = () => {
-                    updateAiState('listening', 'Listening...');
-                };
+        <section id="about-section" class="p-6">
+            <h2 class="text-2xl font-bold mb-4 text-heading">About vyngylok</h2>
+            <p class="text-body-text leading-relaxed">vyngylok is a platform dedicated to sharing insightful stories and diverse perspectives. Our mission is to inform, inspire, and connect readers through quality content.</p>
+            <p class="text-body-text leading-relaxed mt-4">All content is written and curated by <strong>Sandeep Kumar Maurya</strong> (M.Tech, B.Tech).</p>
+        </section>
+    </main>
+    <footer class="bg-background-light border-t border-slate-200 text-center py-10 px-5">
+        <div class="flex justify-center gap-6 mb-6">
+            <a id="privacy-policy-link" class="text-body-text hover:text-cyonered transition-all duration-300" href="#">Privacy Policy</a>
+            <a id="terms-service-link" class="text-body-text hover:text-cyonered transition-all duration-300" href="#">Terms of Service</a>
+            <a id="contact-us-link" class="text-body-text hover:text-cyonered transition-all duration-300" href="mailto:vyonglok@gmail.com">Contact Us</a>
+        </div>
+        <div class="flex justify-center gap-6 mb-6">
+            <a id="twitter-link" class="text-body-text hover:text-cyonered transition-transform transform hover:-translate-y-1" href="https://x.com/home" target="_blank" rel="noopener noreferrer">
+                <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg"><path d="M247.39,68.94A8,8,0,0,0,240,64H209.57A48.66,48.66,0,0,0,168.1,40a46.91,46.91,0,0,0-33.75,13.7A47.9,47.9,0,0,0,120,88v6.09C79.74,83.47,46.81,50.72,46.46,50.37a8,8,0,0,0-13.65,4.92c-4.31,47.79,9.57,79.77,22,98.18a110.93,110.93,0,0,0,21.88,24.2c-15.23,17.53-39.21,26.74-39.47,26.84a8,8,0,0,0-3.85,11.93c.75,1.12,3.75,5.05,11.08,8.72C53.51,229.7,65.48,232,80,232c70.67,0,129.72-54.42,135.75-124.44l29.91-29.9A8,8,0,0,0,247.39,68.94Zm-45,29.41a8,8,0,0,0-2.32,5.14C196,166.58,143.28,216,80,216c-10.56,0-18-1.4-23.22-3.08,11.51-6.25,27.56-17,37.88-32.48A8,8,0,0,0,92,169.08c-.47-.27-43.91-26.34-44-96,16,13,45.25,33.17,78.67,38.79A8,8,0,0,0,136,104V88a32,32,0,0,1,9.6-22.92A30.94,30.94,0,0,1,167.9,56c12.66.16,24.49,7.88,29.44,19.21A8,8,0,0,0,204.67,80h16Z"></path></svg>
+            </a>
+            <a id="instagram-link" class="text-body-text hover:text-cyonered transition-transform transform hover:-translate-y-1" href="#" target="_blank" rel="noopener noreferrer">
+                <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg"><path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160ZM176,24H80A56.06,56.06,0,0,0,24,80v96a56.06,56.06,0,0,0,56,56h96a56.06,56.06,0,0,0,56-56V80A56.06,56.06,0,0,0,176,24Zm40,152a40,40,0,0,1-40,40H80a40,40,0,0,1-40-40V80A40,40,0,0,1,80,40h96a40,40,0,0,1,40,40ZM192,76a12,12,0,1,1-12-12A12,12,0,0,1,192,76Z"></path></svg>
+            </a>
+            <a id="facebook-link" class="text-body-text hover:text-cyonered transition-transform transform hover:-translate-y-1" href="#" target="_blank" rel="noopener noreferrer">
+                <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,191.63V152h24a8,8,0,0,0,0-16H136V112a16,16,0,0,1,16-16h16a8,8,0,0,0,0-16H152a32,32,0,0,0-32,32v24H96a8,8,0,0,0,0,16h24v63.63a88,88,0,1,1,16,0Z"></path></svg>
+            </a>
+        </div>
+        <p class="text-sm text-body-text">© 2024 vyngylok. All rights reserved.</p>
+    </footer>
+</div>
 
-                recognition.onresult = (event) => {
-                    const spokenText = event.results[0][0].transcript;
-                    chatInput.value = spokenText;
-                    handleSendMessage(); // सुनने के बाद सीधे मैसेज भेज दें
-                };
+<!-- News Page Content (Initially Hidden) -->
+<div id="news-page-container" style="display: none;">
+    <div class="header"><h1>vyngylok</h1><button class="subscribe-btn">Subscribe</button></div>
+    <div id="category-container" class="category-container"></div>
+    <div class="latest-articles-ticker">
+        <div class="article-item active">ताज़ा व्यंग्य: चाय की टपरी पर हुई चर्चा, देश की अर्थव्यवस्था का मिला समाधान!</div>
+        <div class="article-item">शेयर बाजार में भारी उछाल, वजह जानकर निवेशक भी हैरान।</div>
+    </div>
+    <div class="main-content"><div id="main-article-card" class="main-article-card"></div></div>
+    <div class="older-articles-section"><h3>पुराने व्यंग्य</h3><div id="older-articles-container"></div></div>
+</div>
 
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error', event.error);
-                    updateAiState('ready', `Error: ${event.error}`);
-                };
-                
-                recognition.onend = () => {
-                   if (aiStatus.textContent === 'Listening...') {
-                        updateAiState('ready', 'J.A.R.V.I.S. is Ready');
-                   }
-                };
+<!-- Modals -->
+<div id="subscription-modal" class="modal"><div class="modal-content"><span class="close-btn">&times;</span><h2>Subscribe to vyngylok</h2><form id="subscription-form"><input type="text" id="name" placeholder="Name" required><input type="tel" id="mobile" placeholder="Mobile Number" required><input type="email" id="email" placeholder="E-mail" required><textarea id="address" placeholder="Address" rows="3" required></textarea><button type="submit">Submit</button></form></div></div>
+<div id="policy-modal" class="modal"><div class="modal-content"><span class="close-btn">&times;</span><h2 id="policy-title"></h2><div id="policy-content-container" class="policy-content"></div></div></div>
 
-            } else {
-                micBtn.style.display = 'none'; // अगर API सपोर्टेड नहीं है तो माइक बटन छिपा दें
-                console.warn("Speech Recognition API not supported in this browser.");
-            }
+<!-- =========== DYNAMIC SCRIPT SECTION =========== -->
+<script type="module">
+  // --- FIREBASE SDK IMPORTS ---
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-            // AI की स्थिति (सुनना, सोचना, बोलना) को अपडेट करने के लिए फंक्शन
-            function updateAiState(state, text) {
-                aiStatus.textContent = text;
-                aiOrb.className = ''; // पहले की क्लास हटाएँ
-                aiOrb.classList.add(state);
-            }
-            
-            async function loadVoices() { /* ... यह फंक्शन वही रहेगा ... */ }
-            function displayMessage(message, sender) { /* ... यह फंक्शन वही रहेगा ... */ }
-            function playAudio(base64Audio) {
-                const audioSrc = `data:audio/mpeg;base64,${base64Audio}`;
-                const audio = new Audio(audioSrc);
-                updateAiState('speaking', 'Speaking...');
-                audio.play();
-                audio.onended = () => {
-                    updateAiState('ready', 'J.A.R.V.I.S. is Ready');
-                };
-            }
+  // --- FIREBASE CONFIGURATION ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuk6h0x_uAUXlRFb0t0faJegAGvAPe3yk",
+    authDomain: "vyonglok-da7e8.firebaseapp.com",
+    databaseURL: "https://vyonglok-da7e8-default-rtdb.firebaseio.com",
+    projectId: "vyonglok-da7e8",
+    storageBucket: "vyonglok-da7e8.firebasestorage.app",
+    messagingSenderId: "81355042832",
+    appId: "1:81355042832:web:76c7e2e2747e69233a9a95",
+    measurementId: "G-W1S155E3QN"
+  };
 
-            async function handleSendMessage() {
-                const userInput = chatInput.value.trim();
-                if (!userInput) return;
+  // --- INITIALIZE FIREBASE & REFERENCES ---
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
+  const dbRef = ref(database); // Reference to the root of the database
 
-                const selectedVoiceId = voiceSelect.value;
-                if (!selectedVoiceId) { alert('Please select a voice first.'); return; }
+  // --- DOM ELEMENT REFERENCES ---
+  const landingPage = document.getElementById('landing-page');
+  const newsPage = document.getElementById('news-page-container');
+  const exploreBtn = document.getElementById('explore-btn');
+  let allData = {}; // Global state to hold all data from Firebase
 
-                displayMessage(userInput, 'user');
-                chatInput.value = '';
-                updateAiState('thinking', 'Thinking...');
+  // --- MAIN FUNCTION TO FETCH ALL DATA AND INITIALIZE THE SITE ---
+  async function initializeSite() {
+    try {
+        const snapshot = await get(dbRef);
+        if (!snapshot.exists()) {
+            console.error("No data found in Firebase root.");
+            return;
+        }
+        allData = snapshot.val();
+        
+        // 1. Initialize the Landing Page
+        renderLandingPage(allData.landingPage || {});
+        
+        // 2. Initialize the News Page (categories and ticker)
+        renderNewsPageCategories(allData.news || {});
+        
+        // 3. Update Site Settings (Footer links, policies)
+        updateSiteSettings(allData.siteSettings || {});
 
-                try {
-                    const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userInput, voice_id: selectedVoiceId }), });
-                    if (!response.ok) { const errData = await response.json(); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-                    
-                    const data = await response.json();
-                    displayMessage(data.textResponse, 'bot');
-                    if (data.audioBase64) { playAudio(data.audioBase64); } else { updateAiState('ready', 'J.A.R.V.I.S. is Ready'); }
+    } catch (error) {
+        console.error("Error initializing site:", error);
+    }
+  }
 
-                } catch (error) {
-                    console.error('Error communicating with AI:', error);
-                    displayMessage(`Sorry, an error occurred: ${error.message}`, 'bot');
-                    updateAiState('ready', 'Error occurred');
-                }
-            }
+  // --- RENDER FUNCTIONS ---
+  function renderLandingPage(landingData) {
+    const createCard = item => `<div class="bg-white shadow-lg rounded-lg overflow-hidden group transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-2"><div class="w-full h-48 bg-cover bg-center" style='background-image: url("${item.image}")'></div><div class="p-4"><h3 class="text-lg font-bold text-heading group-hover:text-cyonered transition-colors">${item.title}</h3><p class="text-sm text-body-text mt-1">${item.description}</p></div></div>`;
+    const createSmallCard = item => `<div class="bg-white shadow-lg rounded-lg overflow-hidden group transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-2"><div class="w-full h-40 bg-cover bg-center rounded-t-lg" style='background-image: url("${item.image}")'></div><div class="p-4"><h3 class="font-bold text-heading group-hover:text-cyonered transition-colors">${item.title}</h3><p class="text-sm text-body-text mt-1">${item.description}</p></div></div>`;
+    const createScrollCard = item => `<div class="flex flex-col gap-3 rounded-lg min-w-[280px] flex-shrink-0 bg-white shadow-lg overflow-hidden group transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-2"><div class="w-full h-40 bg-cover bg-center" style='background-image: url("${item.image}")'></div><div class="p-4"><h3 class="font-bold text-heading group-hover:text-cyonered transition-colors">${item.title}</h3><p class="text-sm text-body-text mt-1">${item.description}</p></div></div>`;
 
-            sendBtn.addEventListener('click', handleSendMessage);
-            chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
-            
-            if (recognition) {
-                micBtn.addEventListener('click', () => {
-                    recognition.start();
-                });
-            }
+    const featuredContainer = document.getElementById('featured-stories-container');
+    const latestContainer = document.getElementById('latest-articles-container');
+    const picksContainer = document.getElementById('editors-picks-container');
 
-            // ज़रूरी फंक्शन्स को फिर से कॉपी-पेस्ट कर रहा हूँ ताकि कुछ छूट न जाए
-            async function loadVoices() {
-                try {
-                    const response = await fetch('/api/voices');
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const data = await response.json();
-                    voiceSelect.innerHTML = '<option value="">Select a Voice</option>';
-                    data.voices.forEach(voice => {
-                        const option = document.createElement('option');
-                        option.value = voice.voice_id;
-                        option.textContent = `${voice.name} (${voice.labels.gender || 'Unknown'})`;
-                        voiceSelect.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error('Failed to load voices:', error);
-                    voiceSelect.innerHTML = '<option value="">Error loading voices</option>';
-                }
-            }
-            function displayMessage(message, sender) {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message', `${sender}-message`);
-                messageDiv.textContent = message;
-                chatWindow.appendChild(messageDiv);
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-            }
+    if (landingData.featuredStories) featuredContainer.innerHTML = landingData.featuredStories.map(createCard).join('');
+    if (landingData.latestArticles) latestContainer.innerHTML = landingData.latestArticles.map(createSmallCard).join('');
+    if (landingData.editorsPicks) picksContainer.innerHTML = landingData.editorsPicks.map(createScrollCard).join('');
+  }
 
-            loadVoices();
-        });
-    </script>
+  function renderNewsPageCategories(newsData) {
+    const categoryContainer = newsPage.querySelector('#category-container');
+    categoryContainer.innerHTML = '';
+    const categories = Object.keys(newsData);
+    categories.forEach(catName => {
+        const catBtn = document.createElement('div');
+        catBtn.className = 'category-item';
+        catBtn.textContent = catName;
+        catBtn.addEventListener('click', () => renderSpecificCategory(catName));
+        categoryContainer.appendChild(catBtn);
+    });
+    // Auto-load the first category if it exists
+    if (categories.length > 0) {
+        renderSpecificCategory(categories[0]);
+    }
+  }
+  
+  function renderSpecificCategory(categoryName) {
+    const categoryData = allData.news[categoryName];
+    if (!categoryData) return;
+    
+    // Render main article
+    document.getElementById('main-article-card').innerHTML = `
+        <div class="image-container-16-9"><img src="${categoryData.mainArticle.image}" alt="${categoryData.mainArticle.title}"></div>
+        <div class="article-topic">${categoryData.mainArticle.topic}</div>
+        <div class="article-box"><h2>${categoryData.mainArticle.title}</h2><p>${categoryData.mainArticle.content}</p></div>`;
+        
+    // Render older articles
+    const olderContainer = document.getElementById('older-articles-container');
+    olderContainer.innerHTML = '';
+    (categoryData.olderArticles || []).forEach(article => {
+        const strip = document.createElement('div');
+        strip.className = 'old-article-strip';
+        strip.innerHTML = `<img src="${article.image}" alt="${article.title}" class="old-article-image"><div class="old-article-topic">${article.title}</div>`;
+        strip.addEventListener('click', () => showArticleInMainView(article));
+        olderContainer.appendChild(strip);
+    });
+    
+    // Highlight active category button
+    newsPage.querySelectorAll('.category-item').forEach(btn => btn.classList.toggle('active', btn.textContent === categoryName));
+  }
+
+  function showArticleInMainView(articleData) {
+    document.getElementById('main-article-card').innerHTML = `
+        <div class="image-container-16-9"><img src="${articleData.image}" alt="${articleData.title}"></div>
+        <div class="article-topic">${articleData.topic}</div>
+        <div class="article-box"><h2>${articleData.title}</h2><p>${articleData.content}</p></div>`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateSiteSettings(settingsData) {
+    if (settingsData.contactEmail) document.getElementById('contact-us-link').href = `mailto:${settingsData.contactEmail}`;
+    if (settingsData.twitterUrl) document.getElementById('twitter-link').href = settingsData.twitterUrl;
+    if (settingsData.instagramUrl) document.getElementById('instagram-link').href = settingsData.instagramUrl;
+    if (settingsData.facebookUrl) document.getElementById('facebook-link').href = settingsData.facebookUrl;
+    
+    // Setup policy links to open modal
+    document.getElementById('privacy-policy-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        openPolicyModal('Privacy Policy', settingsData.privacyPolicy || '<p>Privacy Policy not set.</p>');
+    });
+    document.getElementById('terms-service-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        openPolicyModal('Terms of Service', settingsData.termsOfService || '<p>Terms of Service not set.</p>');
+    });
+  }
+
+  // --- EVENT LISTENERS AND UTILITIES ---
+  exploreBtn.addEventListener('click', () => {
+    landingPage.style.display = 'none';
+    newsPage.style.display = 'block';
+  });
+
+  // Ticker logic (remains static as per original design)
+  const tickerItems = newsPage.querySelectorAll('.latest-articles-ticker .article-item');
+  let currentTickerIndex = 0;
+  setInterval(() => {
+    if(tickerItems.length === 0) return;
+    tickerItems[currentTickerIndex].classList.remove('active');
+    currentTickerIndex = (currentTickerIndex + 1) % tickerItems.length;
+    tickerItems[currentTickerIndex].classList.add('active');
+  }, 3000);
+
+  // Modal Logic (Subscription and Policy)
+  const subModal = document.getElementById('subscription-modal');
+  const policyModal = document.getElementById('policy-modal');
+  const allCloseBtns = document.querySelectorAll('.close-btn');
+
+  document.querySelector('.subscribe-btn').addEventListener('click', () => subModal.style.display = 'flex');
+  
+  allCloseBtns.forEach(btn => btn.addEventListener('click', () => {
+      subModal.style.display = 'none';
+      policyModal.style.display = 'none';
+  }));
+
+  window.addEventListener('click', (e) => {
+      if (e.target === subModal || e.target === policyModal) {
+          subModal.style.display = 'none';
+          policyModal.style.display = 'none';
+      }
+  });
+  
+  function openPolicyModal(title, content) {
+      document.getElementById('policy-title').textContent = title;
+      document.getElementById('policy-content-container').innerHTML = content;
+      policyModal.style.display = 'flex';
+  }
+
+  document.getElementById('subscription-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const subData = {
+          name: document.getElementById('name').value,
+          mobile: document.getElementById('mobile').value,
+          email: document.getElementById('email').value,
+          address: document.getElementById('address').value,
+          subscribedAt: new Date().toISOString()
+      };
+      const newSubRef = push(ref(database, 'subscriptions'));
+      set(newSubRef, subData).then(() => {
+          alert('Subscription successful!');
+          subModal.style.display = 'none';
+          document.getElementById('subscription-form').reset();
+      }).catch(err => alert('Subscription failed: ' + err.message));
+  });
+
+  // --- START THE APPLICATION ---
+  initializeSite();
+</script>
 </body>
-</html> 
+</html>
